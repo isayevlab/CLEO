@@ -11,14 +11,24 @@ def explorator_explotator():
 
     experiment_name = st.text_input(label="Experiment ID", placeholder="polymer_space_1")
     sample_number = st.number_input(label="Desired number of samples", value=20)
-    n_clusters = st.slider("Number of clusters for diverse selection", min_value=1, max_value=int(sample_number), step=1)
+    n_clusters = st.slider("Number of clusters for diverse selection", min_value=1, max_value=max(2, int(sample_number)), step=1)
 
     if experiment_name:
         space_path = f"experiments/{experiment_name}/space.csv"
         predictions_path = f"experiments/{experiment_name}/predictions.csv"
 
-        if os.path.exists(space_path) and os.path.exists(predictions_path):
-            space = pd.read_csv(space_path, index_col=0)
+        # Check if the space exists
+        if not os.path.exists(space_path):
+            st.error(f"The space file does not exist for the experiment '{experiment_name}' in '{space_path}'. Please verify the experiment ID.")
+            return  # Stop further execution
+
+        if not os.path.exists(predictions_path):
+            st.error(f"The predictions file does not exist for the experiment '{experiment_name}' in '{predictions_path}'. Please verify the experiment ID.")
+            return  # Stop further execution
+
+        space = pd.read_csv(space_path, index_col=0)
+        predictions = pd.read_csv(predictions_path, index_col=0)
+
         # Allow user to fix variables
         with st.expander("Fix Variables"):
             fixed_columns = st.multiselect("Select columns to fix", options=space.columns if 'space' in locals() else [])
@@ -34,7 +44,7 @@ def explorator_explotator():
         ignore_columns = [col for col in space.columns if col.startswith("__")]
         space_filtered = space.loc[:, ~space.columns.isin(ignore_columns)].copy()
         features = list(space_filtered.columns)
-        predictions = pd.read_csv(predictions_path, index_col=0)
+
         space_filtered["Prediction"] = predictions["Prediction"]
         space_filtered["Uncertainty"] = predictions["Uncertainty"]
 
